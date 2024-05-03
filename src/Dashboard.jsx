@@ -2,28 +2,27 @@ import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Swal from 'sweetalert2';
 import { clearUser, getUser } from './utils/storage';
-import { URL } from './utils/apiService';
+import { cashInAPI, getBalanceAPI, getTransectionsAPI } from './utils/apiService';
 import { LuLogOut } from "react-icons/lu";
 import { IoRefreshCircleOutline } from "react-icons/io5";
 
 const Dashboard = () => {
-  const user = getUser();
-  const [balance, setBalance] = useState(parseFloat(user?.balance));
+  const [user, setUser] = useState(null);
+  const [balance, setBalance] = useState(0);
   const [transactions, setTransactions] = useState([]);
   const [cashInAmount, setCashInAmount] = useState('');
   const [showCashInModal, setShowCashInModal] = useState(false);
   const navigate = useNavigate();
 
   useEffect(() => {
+    const user = getUser();
     if (user == null) navigate("/login");
-    fetch(`${URL}?transactions&fingerId=${user?.finderId}`)
-      .then(resp => resp.json())
-      .then(data => {
-        if (data['transactions']) {
-          console.log(data['transactions']);
-        }
-      });
-  }, [user, navigate]);
+    
+    setUser(user);
+    setBalance(parseFloat(user?.balance));
+    getTransectionsAPI(user?.finger_id)
+    .then(data => setTransactions(data));
+  }, [navigate]);
 
   // Function to handle cash in
   const handleCashIn = async () => {
@@ -32,7 +31,8 @@ const Dashboard = () => {
 
   // Function to handle balance refresh
   const handleRefresh = async () => {
-    
+    const data = await getBalanceAPI(user?.finger_id);
+    setBalance(parseFloat(data['balance']));
   };
 
   // Function to handle logout
@@ -57,17 +57,28 @@ const Dashboard = () => {
       });
       return;
     }
-    const newBalance = balance + parseFloat(cashInAmount);
-    setBalance(newBalance);
-    const newTransection = { date: new Date().toISOString().slice(0, 10), time: new Date().toLocaleTimeString(), type: 'Credit', amount: parseFloat(cashInAmount) };
-    setTransactions([...transactions, newTransection]);
-    setShowCashInModal(false);
-    setCashInAmount('');
-    Swal.fire({
-      icon: 'success',
-      title: 'Cash In Successful',
-      text: 'Amount added to your balance.',
-    });
+    const data = await cashInAPI(user?.finger_id, parseFloat(cashInAmount));
+    if (data['message']) {
+      const newBalance = balance + parseFloat(cashInAmount);
+      setBalance(newBalance);
+      const newTransection = { date: new Date().toISOString().slice(0, 10), time: new Date().toLocaleTimeString(), type: 'credit', amount: parseFloat(cashInAmount) };
+      setTransactions([...transactions, newTransection]);
+      setShowCashInModal(false);
+      setCashInAmount('')
+      Swal.fire({
+        icon: 'success',
+        title: 'Cash In Successful',
+        text: 'Amount added to your balance.',
+      });
+    }
+    else {
+      Swal.fire({
+        icon: 'error',
+        title: 'Unable to process!',
+        text: data['error'],
+      });
+    }
+
   };
 
   return (
@@ -92,8 +103,8 @@ const Dashboard = () => {
               <span className='bg-blue-600 text-white text-xl font-bold p-2 px-4 rounded-md'>{balance.toFixed(2)} TK</span>
               <button onClick={handleRefresh}>
                 <IoRefreshCircleOutline className="text-4xl ml-2 text-slate-500" />
-              </button> 
-            </p> 
+              </button>
+            </p>
             <button onClick={handleCashIn} className="bg-blue-500 text-white p-2 px-4 rounded-md hover:bg-blue-600">
               Cash In
             </button>
@@ -101,28 +112,30 @@ const Dashboard = () => {
         </div>
 
         {/* Transaction Record Card */}
-        <div className="bg-white rounded-lg shadow-lg p-8">
+        <div className="bg-white rounded-lg shadow-lg p-8 min-h-[30rem]">
           <h1 className="text-slate-600 text-3xl font-bold mb-4">Transaction History</h1>
           <hr className='mb-3' />
           <div className="overflow-auto max-h-80">
             <table className="w-full border-collapse border border-gray-300">
               <thead className="bg-gray-200">
                 <tr>
-                  <th className="p-3">Date</th>
-                  <th className="p-3">Time</th>
-                  <th className="p-3">Type</th>
-                  <th className="p-3">Amount</th>
+                  <th className="p-3 border border-gray-400">Date</th>
+                  <th className="p-3 border border-gray-400">Time</th>
+                  <th className="p-3 border border-gray-400">Type</th>
+                  <th className="p-3 border border-gray-400">Amount</th>
                 </tr>
               </thead>
               <tbody className='text-center'>
-                {transactions.map((transaction, index) => (
-                  <tr key={index} className={transaction.type === 'Credit' ? 'text-green-500' : 'text-red-500'}>
-                    <td className="p-3">{transaction.date}</td>
-                    <td className="p-3">{transaction.time}</td>
-                    <td className="p-3">{transaction.type}</td>
-                    <td className="p-3">{transaction.amount.toFixed(2)}</td>
-                  </tr>
-                ))}
+                {
+                  transactions && transactions.map((transaction, index) => (
+                    <tr key={index} className={transaction.type === 'credit' ? 'text-green-500' : 'text-red-500'}>
+                      <td className="p-3 border border-gray-400">{transaction.date}</td>
+                      <td className="p-3 border border-gray-400">{transaction.time}</td>
+                      <td className="p-3 border border-gray-400">{transaction.type}</td>
+                      <td className="p-3 border border-gray-400">{transaction.amount}</td>
+                    </tr>
+                  ))
+                }
               </tbody>
             </table>
           </div>

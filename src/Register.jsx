@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import Swal from 'sweetalert2';
+import { registerAPI } from './utils/apiService';
 
 const Register = () => {
   const [fullName, setFullName] = useState('');
@@ -14,14 +15,22 @@ const Register = () => {
   const handleRegister = async (e) => {
     e.preventDefault();
     try {
-
-      // Handle success
-      Swal.fire({
-        icon: 'success',
-        title: 'Registration Successful',
-        text: 'You have successfully registered.',
-      });
-      navigate('/login');
+      const data = await registerAPI(fullName, email, phone, address, password, fingerId);
+      if (data['message']) {
+        Swal.fire({
+          icon: 'success',
+          title: 'Registration Successful',
+          text: 'You have successfully registered.',
+        });
+        navigate('/login');
+      }
+      else {
+        Swal.fire({
+          icon: 'error',
+          title: 'Registration Error',
+          text: data['error'],
+        });
+      }
     } catch (error) {
       Swal.fire({
         icon: 'error',

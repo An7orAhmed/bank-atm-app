@@ -3,6 +3,8 @@ import { useNavigate } from 'react-router-dom';
 import Swal from 'sweetalert2';
 import { clearUser, getUser } from './utils/storage';
 import { URL } from './utils/apiService';
+import { LuLogOut } from "react-icons/lu";
+import { IoRefreshCircleOutline } from "react-icons/io5";
 
 const Dashboard = () => {
   const user = getUser();
@@ -26,6 +28,11 @@ const Dashboard = () => {
   // Function to handle cash in
   const handleCashIn = async () => {
     setShowCashInModal(true);
+  };
+
+  // Function to handle balance refresh
+  const handleRefresh = async () => {
+    
   };
 
   // Function to handle logout
@@ -71,7 +78,7 @@ const Dashboard = () => {
           <div className='flex justify-between'>
             <h1 className="text-slate-600 text-3xl font-bold mb-4">User Information</h1>
             <button onClick={handlelogout} className="bg-red-500 text-white h-7 px-2 rounded-md hover:bg-red-600">
-              Logout
+              <LuLogOut />
             </button>
           </div>
           <hr className='mb-3' />
@@ -81,7 +88,12 @@ const Dashboard = () => {
           <p className="mb-2"><strong>Address: </strong>{user?.address}</p>
           <p className="my-2"><strong>Current Balance:</strong></p>
           <div className='flex justify-between pt-3'>
-            <p><span className='bg-blue-600 text-white text-xl font-bold p-2 px-4 rounded-md'>{balance.toFixed(2)} TK</span></p>
+            <p className='flex items-center'>
+              <span className='bg-blue-600 text-white text-xl font-bold p-2 px-4 rounded-md'>{balance.toFixed(2)} TK</span>
+              <button onClick={handleRefresh}>
+                <IoRefreshCircleOutline className="text-4xl ml-2 text-slate-500" />
+              </button> 
+            </p> 
             <button onClick={handleCashIn} className="bg-blue-500 text-white p-2 px-4 rounded-md hover:bg-blue-600">
               Cash In
             </button>
